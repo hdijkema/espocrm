@@ -46,8 +46,7 @@ return [
                 'type' => 'id',
             ],
             'data' => [
-                'type' => 'text',
-                'dbType' => 'longtext'
+                'type' => 'text'
             ]
         ]
     ],
