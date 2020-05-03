@@ -40,6 +40,8 @@ use Espo\Modules\Crm\Entities\Campaign;
 use Espo\Core\Mail\Sender;
 use Laminas\Mail\Message;
 
+use Espo\Core\Htmlizer\Htmlizer;
+
 class MassEmail extends \Espo\Services\Record
 {
     const MAX_ATTEMPT_COUNT = 3;
@@ -59,6 +61,14 @@ class MassEmail extends \Espo\Services\Record
         parent::init();
         $this->addDependency('container');
         $this->addDependency('defaultLanguage');
+
+	$this->addDependency('fileManager');
+	$this->addDependency('acl');
+	$this->addDependency('metadata');
+	$this->addDependency('serviceFactory');
+	$this->addDependency('dateTime');
+	$this->addDependency('number');
+	$this->addDependency('entityManager');
     }
 
     protected function getMailSender()
@@ -317,11 +327,17 @@ class MassEmail extends \Espo\Services\Record
     protected function getPreparedEmail(
         Entity $queueItem, Entity $massEmail, Entity $emailTemplate, Entity $target, $trackingUrlList = [])
     {
+	$htmlizer = $this->createHtmlizer();
+
         $templateParams = array(
             'parent' => $target
         );
 
         $emailData = $this->getEmailTemplateService()->parseTemplate($emailTemplate, $templateParams);
+
+	$subject= $emailData['subject'];
+	$subject = $htmlizer->render($target, $subject);
+	$emailData['subject'] = $subject;
 
         $body = $emailData['body'];
 
@@ -355,6 +371,7 @@ class MassEmail extends \Espo\Services\Record
             }
         }
 
+	$body = $htmlizer->render($target, $body);
         $emailData['body'] = $body;
 
         $email = $this->getEntityManager()->getEntity('Email');
@@ -587,6 +604,19 @@ class MassEmail extends \Espo\Services\Record
         }
 
         return $dataList;
+    }
+
+    protected function createHtmlizer()
+    {
+	return new Htmlizer($this->getFileManager(),
+			    $this->getInjection('dateTime'),
+			    $this->getInjection('number'),
+			    $this->getAcl(),
+			    $this->getInjection('entityManager'),
+			    $this->getInjection('metadata'),
+			    $this->getInjection('defaultLanguage'),
+			    $this->getInjection('config')
+			   );
     }
 
 }
