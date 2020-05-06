@@ -29,54 +29,26 @@
  * these Appropriate Legal Notices must retain the display of the "EspoSignals" word.
  ************************************************************************/
 
-namespace Espo\Core\Formula\Functions;
+$obj = (object)[];
 
-use \Espo\ORM\Entity;
-use \Espo\Core\Exceptions\Error;
+session_start();
 
-class SignalType extends Base
-{
-    protected function init()
-    {
-        $this->addDependency('config');
-    }
-
-
-    public function process(\StdClass $item)
-    {
-        if (!property_exists($item, 'value')) {
-            return true;
-        }
-
-        if (!is_array($item->value)) {
-            throw new Error('Value for \'Signal\' item is not array.');
-        }
-
-        if (count($item->value) < 3) {
-             throw new Error('Bad value for \'Signal\' item.');
-        }
-
-		$topic = $this->evaluate($item->value[0]);
-		$entityType = $this->evaluate($item->value[1]);
-		$id = $this->evaluate($item->value[2]);
-
-		$flag_id = "$topic.$entityType.$id";
-        
-		$config = $this->getInjection('config');
-		$web_socket = $config->get('useWebSocket');
-
-		if ($web_socket) {
-			$data = (object) [ 'flag_id' => $flag_id ];
-			$this->getInjection('webSocketSubmission')->submit($flag_id, null, $data);
-		} else {
-			session_start();
-        	if (isset($_SESSION[$flag_id])) {
-				$_SESSION[$flag_id . "_flagged"] = true;
-        	} else {
-				throw new Error("Bad session id '$flag_id'. No signal for that.");
-        	}
-		}
-
-		return $flag_id;
-    }
+if (isset($_GET['id'])) {
+	$id = $_GET['id'];
+	if (isset($_SESSION[$id])) {
+		$obj->ok = true;
+		$obj->status = 'cleared';
+	} else {
+		$obj->ok = false;
+		$obj->status = 'not there';
+	}
+	unset($_SESSION[$id]);
+	unset($_SESSION[$id . "_flagged"]);
+} else {
+	$obj->ok = false;
 }
+
+$json = json_encode($obj);
+
+echo $json;
+?>

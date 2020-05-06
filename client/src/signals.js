@@ -1,94 +1,176 @@
 /************************************************************************
  * vi: set sw=4 ts=4: 
  *
- * This file is part of EspoCRM.
+ * This file is part of EspoSignals.
  *
- * EspoCRM - Open Source CRM application.
- * Copyright (C) 2014-2020 Yuri Kuznetsov, Taras Machyshyn, Oleksiy Avramenko
- * Website: https://www.espocrm.com
+ * EspoSignals - Extension to EspoCRM, an Open Source CRM application.
+ * Copyright (C) 2020 Hans Dijkema
+ * Website: https://github.com/hdijkema/espocrm
  *
- * EspoCRM is free software: you can redistribute it and/or modify
+ * EspoSignals is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * EspoCRM is distributed in the hope that it will be useful,
+ * EspoSignals is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with EspoCRM. If not, see http://www.gnu.org/licenses/.
+ * along with EspoSignals. If not, see http://www.gnu.org/licenses/.
  *
  * The interactive user interfaces in modified source and object code versions
  * of this program must display Appropriate Legal Notices, as required under
  * Section 5 of the GNU General Public License version 3.
  *
  * In accordance with Section 7(b) of the GNU General Public License version 3,
- * these Appropriate Legal Notices must retain the display of the "EspoCRM" word.
+ * these Appropriate Legal Notices must retain the display of the "EspoSignals" word.
  ************************************************************************/
 
 define('signals', [ ], function () {
 
 	var flagged_ids = [];
+	var interval = 1000;
 
-	if (typeof window.hd_signals === 'undefined') {
-		window.hd_signals = [];
-		window.setInterval(
-				function() {
-					window.hd_signals.forEach(function(f, idx) { f(100); });
-				},
-				100
-			);
-		window.setInterval(
-				function() {
-            		$.ajax({
-                		url: '/api/v1/WebSignals/FlaggedSignals.php',
-                		dataType: 'json',
-                		local: true,
-                		success: function(data) {
-							data.flagged.forEach(function(id, idx) {
-								flagged_ids.push(id);
-							});
-                		}
-            		});
-				},
-				2000
-			);
-    }
+	var _check_id;
 
-	var checkId = function(id, callback) {
-		console.log("checkId: " + id);
-		console.log(flagged_ids);
-		flagged_ids = flagged_ids.filter(function(flagged_id, idx, arr) {
-			if (id == flagged_ids) { callback();return false; } else { return true; }
-		});
-	};
+	var Signals;
 
-    var Signals = {
-		registerSignal: function (id, callback, seconds = 1) {
-							$.ajax({
-                				url: '/api/v1/WebSignals/RegisterSignal.php?id=' + id,
-                				dataType: 'json',
-                				local: true,
-                				success: function(data) {
-									if (seconds < 1) { seconds = 1; }
-									var _mseconds = seconds * 1000;
-									var _ticks = 0;
-									window.hd_signals.push(
-										function(ms) {
-											_ticks += ms;
-											if (_ticks >= _mseconds) {
-												_ticks = 0;
-												checkId(id, callback);
-											}
-										}
-									);
-								}
-							});
+   	Signals = {
+		_initialized: false,
+
+		_internalDeregSig: function(panel, topic, entityType, id) { },
+		_internalRegSig: function(panel, topic, entityType, id) { },
+
+		_deregisterSignal: function(panel, topic, entityType, id) { 
+			this._internalDeregSig(panel, topic, entityType, id); 
+		},
+
+		_init: function(panel) {
+			if (this._initialized) return;
+
+			this._initialized = true;
+
+    		if (!panel.getConfig().get('useWebSocket')) {
+				// If we can't use websockets, we use our own polling mechanism.
+
+				if (typeof window.hd_signals === 'undefined') {
+					var tick = 100; // 100 ms
+					window.hd_signals = [];
+					window.setInterval(
+							function() {
+								window.hd_signals.forEach(
+									function(obj, idx) { 
+										obj.cb(tick); 
+									}
+								);
+							},
+							tick
+						);
+					window.setInterval(
+							function() {
+            					$.ajax({
+                					url: '/api/v1/PollingSignals/FlaggedSignals.php',
+                					dataType: 'json',
+                					local: true,
+                					success: function(data) {
+										data.flagged.forEach(function(id, idx) {
+											flagged_ids.push(id);
+										});
+                					}
+            					});
+							},
+							interval
+						);
+				}
+
+	    		_checkId = function(id, callback) {
+					flagged_ids = flagged_ids.filter(function(flagged_id, idx, arr) {
+						console.log("_checkId: " + flagged_id);
+						if (id == flagged_ids) { 
+							callback();return false; 
+						} else { 
+							return true; 
 						}
+					});
+				};
 
-	};
+				this._internalDeregSig = function(panel, topic, entityType, id) {
+					var flag_id = topic + '.' + entityType + '.' + id;
+					$.ajax({
+						url: '/api/v1/PollingSignals/DeregisterSignal.php?id=' + flag_id,
+						dataType: 'json',
+						local: true,
+						success: function(data) {
+							// does nothing
+						}
+					});
+					window.hd_signals = window.hd_signals.filter(function(obj, idx) {
+																	var id = obj.flag;
+																	return flag_id != id; 
+																});
+				};
+
+				this._internalRegSig = function (panel, topic, entityType, id, callback, poll_seconds = 1) {
+					var flag_id = topic + '.' + entityType + '.' + id;
+					$.ajax({
+               			url: '/api/v1/PollingSignals/RegisterSignal.php?id=' + flag_id,
+               			dataType: 'json',
+               			local: true,
+               			success: function(data) {
+							var seconds = poll_seconds;
+							if (poll_seconds < 1) { seconds = 1; }
+							var _mseconds = seconds * 1000;
+							var _ticks = 0;
+							var obj = {
+								flag: flag_id,
+								cb: function(ms) {
+										_ticks += ms;
+										if (_ticks >= _mseconds) {
+											_ticks = 0;
+											_checkId(flag_id, callback);
+										}
+									}
+							};
+							window.hd_signals.push(obj);
+						}
+					});
+					var me = this;
+					panel.once('remove', function() { 
+						me._deregisterSignal(panel, topic, entityType, id);
+					});
+				};
+			} else {
+				// Websocket implementation
+
+				this._internalDeregSig = function(panel, topic, entityType, id) {
+					var flag_id = topic + '.' + entityType + '.' + id;
+					panel.getHelper().webSocketManager.unsubscribe(flag_id);
+				};
+
+				this._internalRegSig = function(panel, topic, entityType, id, callback, poll_seconds = 1) {
+					var flag_id = topic + '.' + entityType + '.' + id;
+					panel.streamUpdateWebSocketTopic = flag_id;
+					panel.getHelper().webSocketManager.subscribe(flag_id, 
+															 	function(t, data) {
+																	callback();
+															 	}
+																);
+					panel.once('remove', function() {
+						this._deregisterSignal(panel, topic, entityType, id);
+					});
+				};
+			}
+
+		},
+
+		registerSignal: function(panel, topic, entityType, id, poll_secs = 1) {
+			console.log('registerSignal: ' + topic + '.' + entityType + '.' + id);
+			this._init(panel);
+			this._internalRegSig(panel, topic, entityType, id, poll_secs);
+		}
+    };
 
 	return Signals;
 });
