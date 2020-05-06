@@ -2,21 +2,25 @@
 # vi: set sw=4 ts=4:
 
 VERSION="0.1.0"
+EXT="massmail-htmlizer-extension"
+NAME="MassEmail.php Htmlizer Extension"
+DESCRIPTION="Mass eMmail using Htmlizer, just as the Pdf functionality"
 
 CMD=$1;
 
-CLIENT_FILES="client/src/signals.js client/src/views/record/panels/autoupdate-relationship.js"
-FORMULA_FILES="application/Espo/Core/Formula/Functions/SignalType.php"
-POLL_FILES="api/v1/PollingSignals/DeregisterSignal.php  api/v1/PollingSignals/FlaggedSignals.php  api/v1/PollingSignals/RegisterSignal.php"
+CLIENT_FILES=""
+FORMULA_FILES=""
+POLL_FILES=""
+CORE_FILES="application/Espo/Modules/Crm/Services/MassEmail.php"
 
-FILES="$CLIENT_FILES $FORMULA_FILES $POLL_FILES"
+FILES="$CLIENT_FILES $FORMULA_FILES $POLL_FILES $CORE_FILES"
 
 if [ "$CMD" == "install" ]; then
 	tar cf - $FILES | (cd ~/crm; tar xvf -)
 elif [ "$CMD" == "fromcrm" ]; then
 	(cd ~/crm;tar cf - $FILES) | tar xvf -
 elif [ "$CMD" == "buildext" ] ; then
-	DIR=/tmp/signals_extension
+	DIR=/tmp/$EXT
 	rm -rf $DIR
 	mkdir $DIR
 
@@ -24,13 +28,13 @@ elif [ "$CMD" == "buildext" ] ; then
 	DT=`date +%Y-%m-%d`
 	
 	echo "{" 											>$MANIFEST
-	echo "  \"name:\": \"Signals Extension\", " 		>>$MANIFEST
+	echo "  \"name:\": \"$NAME\", " 					>>$MANIFEST
 	echo "  \"version\": \"$VERSION\", " 				>>$MANIFEST
 	echo "  \"acceptableVersions\": [ \">=5.8.5\" ], "	>>$MANIFEST
 	echo "  \"php\": [ \">=7.0.0\" ], " 				>>$MANIFEST
 	echo "  \"releaseDate\": \"$DT\", " 				>>$MANIFEST
 	echo "  \"author\": \"Hans Dijkema\", "				>>$MANIFEST
-	echo "  \"description\": \"Allows to signal the front-end from a formula, as to trigger a refetch of data\"" >>$MANIFEST
+	echo "  \"description\": \"$DESCRIPTOIN\""			>>$MANIFEST
 	echo "}"											>>$MANIFEST
 
 	mkdir $DIR/files
@@ -62,7 +66,7 @@ elif [ "$CMD" == "buildext" ] ; then
 	echo "  public function run($container) {}" 	>>$F
 	echo "}"										>>$F
 
-	EXTENSION="espocrm-signals-extension-$VERSION.zip"
+	EXTENSION="espocrm-$EXT-$VERSION.zip"
 	CDIR=`pwd`
 	BUILD_DIR="$CDIR/build"
 	EXT_FILE="$BUILD_DIR/$EXTENSION"
