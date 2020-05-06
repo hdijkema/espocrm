@@ -2,7 +2,9 @@
 /************************************************************************
  * This file is part of EspoCRM.
  * 
- * Modified for this HooksFormula extension.
+ * Modified for this HookedFormula extension.
+ * (c) 2020 Hans Dijkema.
+ * https://github.com/hdijkema/espocrm
  *
  * EspoCRM - Open Source CRM application.
  * Copyright (C) 2014-2020 Yuri Kuznetsov, Taras Machyshyn, Oleksiy Avramenko
