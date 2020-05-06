@@ -30,13 +30,13 @@ elif [ "$CMD" == "buildext" ] ; then
 	DT=`date +%Y-%m-%d`
 	
 	echo "{" 											>$MANIFEST
-	echo "  \"name:\": \"$NAME\", " 					>>$MANIFEST
+	echo "  \"name\": \"$NAME\", " 						>>$MANIFEST
 	echo "  \"version\": \"$VERSION\", " 				>>$MANIFEST
 	echo "  \"acceptableVersions\": [ \">=5.8.5\" ], "	>>$MANIFEST
 	echo "  \"php\": [ \">=7.0.0\" ], " 				>>$MANIFEST
 	echo "  \"releaseDate\": \"$DT\", " 				>>$MANIFEST
 	echo "  \"author\": \"Hans Dijkema\", "				>>$MANIFEST
-	echo "  \"description\": \"$DESCRIPTOIN\""			>>$MANIFEST
+	echo "  \"description\": \"$DESCRIPTION\""			>>$MANIFEST
 	echo "}"											>>$MANIFEST
 
 	mkdir $DIR/files
@@ -45,28 +45,37 @@ elif [ "$CMD" == "buildext" ] ; then
 	mkdir $DIR/scripts
 
 	F=$DIR/scripts/BeforeInstall.php
-    echo "class BeforeInstall"						>$F
+	echo "<?php"									>$F
+    echo "class BeforeInstall"						>>$F
 	echo "{"										>>$F
-	echo "  public function run($container) {}" 	>>$F
+	echo "  public function run($container) {"		>>$F
+	echo "  }" 										>>$F
 	echo "}"										>>$F
+	echo "?>"										>>$F
 
 	F=$DIR/scripts/AfterInstall.php
-    echo "class AfterInstall"						>$F
+	echo "<?php"									>$F
+    echo "class AfterInstall"						>>$F
 	echo "{"										>>$F
 	echo "  public function run($container) {}" 	>>$F
 	echo "}"										>>$F
+	echo "?>"										>>$F
 
 	F=$DIR/scripts/BeforeUninstall.php
-    echo "class BeforeUninstall"					>$F
+	echo "<?php"									>$F
+    echo "class BeforeUninstall"					>>$F
 	echo "{"										>>$F
 	echo "  public function run($container) {}" 	>>$F
 	echo "}"										>>$F
+	echo "?>"										>>$F
 
 	F=$DIR/scripts/AfterUninstall.php
-    echo "class AfterUninstall"						>$F
+	echo "<?php"									>$F
+    echo "class AfterUninstall"						>>$F
 	echo "{"										>>$F
 	echo "  public function run($container) {}" 	>>$F
 	echo "}"										>>$F
+	echo "?>"										>>$F
 
 	EXTENSION="espocrm-$EXT-$VERSION.zip"
 	CDIR=`pwd`
