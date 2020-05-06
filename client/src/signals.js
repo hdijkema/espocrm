@@ -70,16 +70,18 @@ define('signals', [ ], function () {
 						);
 					window.setInterval(
 							function() {
-            					$.ajax({
-                					url: '/api/v1/PollingSignals/FlaggedSignals.php',
-                					dataType: 'json',
-                					local: true,
-                					success: function(data) {
-										data.flagged.forEach(function(id, idx) {
-											flagged_ids.push(id);
-										});
-                					}
-            					});
+								if (window.hd_signals.length > 0) {
+            						$.ajax({
+                						url: '/api/v1/PollingSignals/FlaggedSignals.php',
+                						dataType: 'json',
+                						local: true,
+                						success: function(data) {
+											data.flagged.forEach(function(id, idx) {
+												flagged_ids.push(id);
+											});
+                						}
+            						});
+								}
 							},
 							interval
 						);
@@ -87,7 +89,6 @@ define('signals', [ ], function () {
 
 	    		_checkId = function(id, callback) {
 					flagged_ids = flagged_ids.filter(function(flagged_id, idx, arr) {
-						console.log("_checkId: " + flagged_id);
 						if (id == flagged_ids) { 
 							callback();return false; 
 						} else { 
