@@ -12,4 +12,4 @@ The following extension packages are maintained here:
 * MassEmail.php Htmlizer Extension - provides the same capabilities to the MassEmailer of EspoCRM as to the PDF creator. 
 * Signals Extension - provides a way to update the front-end of EspoCRM using formulas in the backend. 
 
-
+[See the wiki for more information](https://github.com/hdijkema/espocrm/wiki).
