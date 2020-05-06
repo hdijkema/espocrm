@@ -1,6 +1,8 @@
 <?php
 /************************************************************************
  * This file is part of EspoCRM.
+ * 
+ * Modified for this HooksFormula extension.
  *
  * EspoCRM - Open Source CRM application.
  * Copyright (C) 2014-2020 Yuri Kuznetsov, Taras Machyshyn, Oleksiy Avramenko
