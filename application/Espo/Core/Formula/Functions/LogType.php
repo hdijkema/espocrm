@@ -27,7 +27,7 @@ namespace Espo\Core\Formula\Functions;
 use \Espo\ORM\Entity;
 use \Espo\Core\Exceptions\Error;
 
-class WhileType extends Base
+class LogType extends Base
 {
     public function process(\StdClass $item)
     {
@@ -36,19 +36,35 @@ class WhileType extends Base
         }
 
         if (!is_array($item->value)) {
-            throw new Error('Value for \'While\' item is not array.');
+            throw new Error('Value for \'log\' item is not array.');
         }
 
-        if (count($item->value) < 2) {
-             throw new Error('Bad value for \'While\' item.');
-        }
+	$n = count($item->value);
+	if ($n < 1) {
+		throw new Error('log needs at least info|warning|error as first parameter');
+	}
 
-	$last = null;
-        while ($this->evaluate($item->value[0])) {
-            $last = $this->evaluate($item->value[1]);
-        }
+	$type = $this->evaluate($item->value[0]);
 
-	return $last;
+	$msg = "";
+	$i = 0;
+	for($i = 1; $i < $n; $i++) {
+		$expr = $item->value[$i];
+		$str = $this->evaluate($expr);
+		$msg .= $str;
+	}
+
+	if ($type == 'info') {
+		$GLOBALS['log']->info("Formula: $msg");
+	} else if ($type == 'warning') {
+		$GLOBALS['log']->warning("Formula: $msg");
+	} else if ($type == 'error') {
+		$GLOBALS['log']->warning("Formula: $msg");
+	} else {
+		throw new Error('Unknown type \''.$type.'\' for log function.');
+	}
+
+	return $msg;
     }
 }
 

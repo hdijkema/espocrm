@@ -58,7 +58,7 @@ class Formula extends \Espo\Core\Hooks\Base
 
     protected function getScript($script, $hook)
     {
-	$hooks = [ 'afterSave', 'beforeRemove', 'afterRemove' ];
+	$hooks = [ 'afterSave', 'beforeRemove', 'afterRemove', 'afterRelate', 'afterUnrelate', 'adterMassRelate' ];
         if ($hook != 'beforeSave') { array_unshift($hooks, $hook); }
 
 	$i = 0;
@@ -138,6 +138,24 @@ class Formula extends \Espo\Core\Hooks\Base
     public function afterRemove(Entity $entity, array $options = array())
     {
 	$options['hook'] = 'afterRemove';
+	$this->executeFormula($entity, $options);
+    }
+
+    public function afterRelate(Entity $entity, array $options = array())
+    {
+	$options['hook'] = 'afterRelate';
+	$this->executeFormula($entity, $options);
+    }
+
+    public function afterUnrelate(Entity $entity, array $options = array())
+    {
+	$options['hook'] = 'afterUnrelate';
+	$this->executeFormula($entity, $options);
+    }
+
+    public function afterMassRelate(Entity $entity, array $options = array())
+    {
+	$options['hook'] = 'afterMassRelate';
 	$this->executeFormula($entity, $options);
     }
 }

@@ -85,3 +85,5 @@ class RecalculateType extends \Espo\Core\Formula\Functions\Base
         return $ok;
     }
 }
+
+?>
