@@ -36,15 +36,90 @@ use Espo\ORM\Entity;
 class Helper
 {
     protected $config;
+    protected $metadata;
 
-    public function __construct(Config $config)
+    public function __construct(Config $config, $metadata)
     {
         $this->config = $config;
+	$this->metadata = $metadata;
     }
 
     public function formatPersonName(Entity $entity, string $field)
     {
         $format = $this->config->get('personNameFormat');
+
+	# iPersonName
+	$metadata = $this->metadata;
+	$entityType = $entity->getEntityType();
+	$fields = $metadata->get('fields');
+	$entityDefs = $metadata->get('entityDefs');
+        $pattern = null;
+        if (isset($entityDefs[$entityType])) {
+           $entityDef = $entityDefs[$entityType];
+           if (isset($entityDef['fields'])) {
+              $fields = $entityDef['fields'];
+              if (isset($fields[$field])) {
+                 $foreignField = $fields[$field];
+                 $type = $foreignField['type'];
+                 if ($type) {
+                    $fieldDefs = $metadata->get('fields');
+                    if (isset($fieldDefs[$type])) {
+                       $fieldDef = $fieldDefs[$type];
+                       if (isset($fieldDef['patterns'])) {
+                          $patterns = $fieldDef['patterns'];
+                          if (isset($patterns[$format])) {
+                             $pattern = $patterns[$format];
+                          } else if (isset($patterns['default'])) {
+                             $pattern = $patterns[$format];
+                          }
+                       } 
+                    }
+                 }
+              }
+           }
+        }
+
+        if ($pattern) {
+           // a pattern can contain multiple patterns separated by a '|'. 
+           // the pattern is preffered that has the least empty fills.
+           $patts = explode('|', $pattern);
+
+           $pattern_fields = null;
+           preg_match_all('/[{][{]([^}]+)[}][}]/', $pattern, $pattern_fields);
+
+           $patts_fields = array();
+           foreach($pattern_fields[1] as $p_field) {
+              if (!isset($patts_fields[$p_field])) {
+                 $value = $entity->get($p_field . ucfirst($field));
+                 $patts_fields[$p_field] = $value;
+              }
+           }
+
+           $patts1 = array();
+           foreach($patts as $patt) {
+              foreach($patts_fields as $p_field => $val) {
+                  $patt = str_replace("{{".$p_field."}}", "@#B@".$val."@E#@", $patt);
+              }
+              array_push($patts1, $patt);
+           }
+
+           $the_patt = $patts1[0];
+           $m = -1;
+           for($i = 0, $n = count($patts1); $i < $n; $i++) {
+               $patt = $patts1[$i];
+               $c = substr_count($patt, "@#B@@E#@");
+               if ($m == -1 || $c < $m) { 
+                   $the_patt = $patt;
+                   $m = $c;
+               }
+           }
+
+           $h = str_replace("@#B@", "", $the_patt);
+           $h = str_replace("@E#@", "", $h);
+
+           return $h;
+        }
+	# END iPersonName
 
         $first = $entity->get('first' . ucfirst($field));
         $last = $entity->get('last' . ucfirst($field));

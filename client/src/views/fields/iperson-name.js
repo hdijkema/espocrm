@@ -79,6 +79,7 @@ define('views/fields/iperson-name', 'views/fields/person-name', function (Dep) {
                 this.$initials = this.$el.find('[data-name="' + this.initialsField + '"]');
 
                 this.$initials.on('change', function () {
+                    alert('he!');
                     this.trigger('change');
                 }.bind(this));
             }

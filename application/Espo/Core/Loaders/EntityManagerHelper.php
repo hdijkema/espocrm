@@ -33,8 +33,10 @@ class EntityManagerHelper extends Base
 {
     public function load()
     {
-        return new \Espo\Core\ORM\Helper(
-            $this->getContainer()->get('config')
-        );
+        $container = $this->getContainer();
+        $config = $container->get('config');
+        $metadata = $container->get('metadata');
+
+        return new \Espo\Core\ORM\Helper($config, $metadata);
     }
 }

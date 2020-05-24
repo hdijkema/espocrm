@@ -224,6 +224,40 @@ class Base
     {
         $foreignField = $this->getMetadata()->get(['entityDefs', $entityType, 'fields', $name]);
 
+	# IPersonName Extension
+        if (isset($foreignField['type'])) {
+            if (isset($foreignField['fieldOrder'])) {
+                $fieldDefs = $foreignField['fieldOrder'];
+            } else {
+                $foreignType = $foreignField['type'];
+                $personNameFormat = $this->config->get('personNameFormat');
+                $fieldsMeta = $this->getMetadata()->get('fields');
+                if (isset($fieldsMeta[$foreignType])) {
+                   $fieldMeta = $fieldsMeta[$foreignType];
+                   if (isset($fieldMeta['fieldOrders'])) {
+                       $fieldOrders = $fieldMeta['fieldOrders'];
+                       if (isset($fieldOrders[$personNameFormat])) {
+                           $fieldDefs = $fieldOrders[$personNameFormat];
+                       } else if (isset($fieldOrders['default'])) {
+                           $fieldDefs = $fieldOrders['default'];
+                       }
+                   }
+                }
+            }
+
+            if ($fieldDefs) {
+               $retval = array();
+               $space = '';
+               foreach($fieldDefs as $field) {
+                   if ($space != '') { array_push($retval, $space); }
+                   array_push($retval, $field . ucfirst($name));
+                   $space = ' ';
+               }
+               return $retval;
+            }
+        }
+	# IPersonName Extension
+
         if (isset($foreignField['type']) && $foreignField['type'] == 'personName') {
             $personNameFormat = $this->config->get('personNameFormat');
 

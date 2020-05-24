@@ -51,7 +51,7 @@ class RecalculateType extends \Espo\Core\Formula\Functions\Base
 		$entityType = $this->evaluate($item->value[0]);
         if (!is_string($entityType)) throw new Error("Formula record\recalculate: First argument should be a string (entitytype).");
 
-		error_log(print_r($item->value, true));
+		#error_log(print_r($item->value, true));
 
 		$data = [];
         $i = 1;

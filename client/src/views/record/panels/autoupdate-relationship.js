@@ -8,9 +8,9 @@ define(
 
 				setup: function() {
 					Dep.prototype.setup.call(this);
-					console.log(this);
+					//console.log(this);
                     var signals = Signals;
-					console.log(signals);
+					//console.log(signals);
                     var me = this;
                     signals.registerSignal(this, 
 										   this.topic, this.model.entityType, this.model.id,
