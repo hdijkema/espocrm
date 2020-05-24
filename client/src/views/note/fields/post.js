@@ -26,18 +26,11 @@
  * these Appropriate Legal Notices must retain the display of the "EspoCRM" word.
  ************************************************************************/
 
-Espo.define('views/note/fields/post', ['views/fields/text', 'lib!Textcomplete'], function (Dep, Textcomplete) {
+define('views/note/fields/post', ['views/fields/text', 'lib!Textcomplete'], function (Dep, Textcomplete) {
 
     return Dep.extend({
 
-        rowsDefault: 1,
-
-        seeMoreText: false,
-
         events: _.extend({
-            'input textarea': function (e) {
-                this.controlTextareaHeight();
-            },
             'paste textarea': function (e) {
                 if (!e.originalEvent.clipboardData) return;
                 var text = e.originalEvent.clipboardData.getData('text/plain');
@@ -54,22 +47,6 @@ Espo.define('views/note/fields/post', ['views/fields/text', 'lib!Textcomplete'],
             this.insertedImagesData = {};
         },
 
-        controlTextareaHeight: function (lastHeight) {
-            var scrollHeight = this.$element.prop('scrollHeight');
-            var clientHeight = this.$element.prop('clientHeight');
-
-            if (clientHeight === lastHeight) return;
-
-            if (scrollHeight > clientHeight) {
-                this.$element.attr('rows', this.$element.prop('rows') + 1);
-                this.controlTextareaHeight(clientHeight);
-            }
-
-            if (this.$element.val().length === 0) {
-                this.$element.attr('rows', 1);
-            }
-        },
-
         afterRender: function () {
             Dep.prototype.afterRender.call(this);
             var placeholderText = this.options.placeholderText || this.translate('writeMessage', 'messages', 'Note');
@@ -81,6 +58,19 @@ Espo.define('views/note/fields/post', ['views/fields/text', 'lib!Textcomplete'],
             $textarea.off('drop');
             $textarea.off('dragover');
             $textarea.off('dragleave');
+            $textarea.off('paste');
+
+            $textarea.on('paste', function (e) {
+                var items = e.originalEvent.clipboardData.items;
+                if (items) {
+                    for (var i = 0; i < items.length; i++) {
+                        if (!~items[i].type.indexOf('image')) continue;
+                        var blob = items[i].getAsFile();
+
+                        this.trigger('add-files', [blob]);
+                    }
+                }
+            }.bind(this));
 
             this.$textarea.on('drop', function (e) {
                 e.preventDefault();
@@ -115,7 +105,7 @@ Espo.define('views/note/fields/post', ['views/fields/text', 'lib!Textcomplete'],
                 return url;
             }.bind(this);
 
-            if (assignmentPermission !== 'no') {
+            if (assignmentPermission !== 'no' && this.model.isNew()) {
                 this.$element.textcomplete([{
                     match: /(^|\s)@(\w*)$/,
                     search: function (term, callback) {
