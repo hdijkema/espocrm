@@ -45,6 +45,7 @@ class Formula
         if (is_null($variables)) {
             $variables = (object)[];
         }
+        error_log(print_r($item));
         return $this->functionFactory->create($item, $entity, $variables)->process($item);
     }
 }

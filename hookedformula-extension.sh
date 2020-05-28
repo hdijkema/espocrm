@@ -15,6 +15,7 @@ CORE_FILES="application/Espo/Core/Formula/Functions/WhileType.php"
 CORE_FILES="$CORE_FILES application/Espo/Core/Formula/Functions/RecordGroup/RecalculateType.php"
 CORE_FILES="$CORE_FILES application/Espo/Core/Formula/Functions/LogType.php"
 CORE_FILES="$CORE_FILES application/Espo/Hooks/Common/Formula.php"
+CORE_FILES="$CORE_FILES application/Espo/Core/Formula/Functions/ExecType.php"
 
 FILES="$CLIENT_FILES $FORMULA_FILES $POLL_FILES $CORE_FILES"
 

@@ -58,7 +58,7 @@ class Formula extends \Espo\Core\Hooks\Base
 
     protected function getScript($script, $hook)
     {
-	$hooks = [ 'afterSave', 'beforeRemove', 'afterRemove', 'afterRelate', 'afterUnrelate', 'adterMassRelate' ];
+	$hooks = [ 'afterSave', 'beforeRemove', 'afterRemove', 'afterRelate', 'afterUnrelate', 'afterMassRelate' ];
         if ($hook != 'beforeSave') { array_unshift($hooks, $hook); }
 
 	$i = 0;
@@ -82,6 +82,8 @@ class Formula extends \Espo\Core\Hooks\Base
 
         if ($hook == 'beforeSave') {
            // return what's left of $script
+	   // remove possible beforeSave / afterSave tags.
+	   $script = preg_replace('/(begin|end)[:]beforeSave/', '', $script);
 	   return $script;
         } 
     }

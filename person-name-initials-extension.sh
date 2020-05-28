@@ -17,9 +17,10 @@ POLL_FILES=""
 CORE_FILES="application/Espo/Core/Utils/Database/Orm/Fields/IpersonName.php"
 CORE_FILES="$CORE_FILES application/Espo/Core/Loaders/EntityManagerHelper.php"
 CORE_FILES="$CORE_FILES application/Espo/Core/ORM/Helper.php"
+CORE_FILES="$CORE_FILES application/Espo/Core/Entities/Person.php"
 
 ORM_FILES="application/Espo/Core/Utils/Database/Orm/Base.php"
-ORM_FILES="$ORM_FILES ./application/Espo/Core/ORM/Helper.php"
+ORM_FILES="$ORM_FILES application/Espo/Core/ORM/Helper.php"
 
 TEMPLATE_FILES="client/res/templates/fields/iperson-name/detail.tpl"
 TEMPLATE_FILES="$TEMPLATE_FILES client/res/templates/fields/iperson-name/edit-first-middle-last.tpl"

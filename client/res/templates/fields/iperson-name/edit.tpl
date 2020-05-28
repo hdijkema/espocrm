@@ -5,7 +5,7 @@
         </select>
     </div>
     <div class="col-sm-5 col-xs-5">
-        <input type="text" class="form-control" data-name="initials{{ucName}}" value="{{initialsValue}}" placeholder="{{translate 'Voorinitials'}}"{{#if firstMaxLength}} maxlength="{{initialsMaxLength}}"{{/if}} autocomplete="espo-initials{{ucName}}">
+        <input type="text" class="form-control" data-name="initials{{ucName}}" value="{{initialsValue}}" placeholder="{{translate 'Initialen'}}"{{#if firstMaxLength}} maxlength="{{initialsMaxLength}}"{{/if}} autocomplete="espo-initials{{ucName}}">
     </div>
     <div class="col-sm-4 col-xs-4">
         <input type="text" class="form-control" data-name="first{{ucName}}" value="{{firstValue}}" placeholder="{{translate 'First Name'}}"{{#if firstMaxLength}} maxlength="{{firstMaxLength}}"{{/if}} autocomplete="espo-first{{ucName}}">

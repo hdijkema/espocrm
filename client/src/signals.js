@@ -77,7 +77,19 @@ define('signals', [ ], function () {
                 						local: true,
                 						success: function(data) {
 											data.flagged.forEach(function(id, idx) {
-												flagged_ids.push(id);
+                                                var applies = [];
+                                                window.hd_signals.forEach(
+                                                   function(obj, idx) {
+                                                      if (obj.flag == id) {
+                                                         applies.push(obj);
+                                                      }
+                                                   }
+                                                );
+                                                var f_obj = {
+                                                    flag_id: id,
+                                                    objects: applies
+                                                };
+												flagged_ids.push(f_obj);
 											});
                 						}
             						});
@@ -87,10 +99,16 @@ define('signals', [ ], function () {
 						);
 				}
 
-	    		_checkId = function(id, callback) {
+	    		_checkId = function(id, obj, callback) {
 					flagged_ids = flagged_ids.filter(function(flagged_id, idx, arr) {
-						if (id == flagged_ids) { 
-							callback();return false; 
+                        var f_id = flagged_id.flag_id;
+						if (id == f_id) { 
+							callback();
+                            var objects = flagged_id.objects.filter(function(a_obj, idx, arr) {
+                                return a_obj != obj;
+                            });
+                            flagged_id.objects = objects;
+                            return objects.length > 0;
 						} else { 
 							return true; 
 						}
@@ -130,7 +148,7 @@ define('signals', [ ], function () {
 										_ticks += ms;
 										if (_ticks >= _mseconds) {
 											_ticks = 0;
-											_checkId(flag_id, callback);
+											_checkId(flag_id, obj, callback);
 										}
 									}
 							};

@@ -6,6 +6,7 @@ VERSION="0.1.0"
 CMD=$1;
 
 CLIENT_FILES="client/src/signals.js client/src/views/record/panels/autoupdate-relationship.js"
+CLIENT_FILES="$CLIENT_FILES  client/src/views/record/autoupdate-detail.js"
 FORMULA_FILES="application/Espo/Core/Formula/Functions/SignalType.php"
 POLL_FILES="api/v1/PollingSignals/DeregisterSignal.php  api/v1/PollingSignals/FlaggedSignals.php  api/v1/PollingSignals/RegisterSignal.php"
 
