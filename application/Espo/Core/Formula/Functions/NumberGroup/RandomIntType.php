@@ -27,22 +27,21 @@
  * these Appropriate Legal Notices must retain the display of the "EspoCRM" word.
  ************************************************************************/
 
-namespace Espo\Core\Formula\Functions;
+namespace Espo\Core\Formula\Functions\NumberGroup;
 
 use Espo\Core\Exceptions\Error;
 
-class WhileType extends Base
+class RandomIntType extends \Espo\Core\Formula\Functions\Base
 {
     public function process(\StdClass $item)
     {
-        $args = $this->fetchRawArguments($item);
+        $args = $this->fetchArguments($item);
 
-        if (count($args) < 2) {
-            throw new Error("Function \'while\' should receieve 2 arguments.");
-        }
+        $min = $args[0] ?? 0;
+        $max = $args[1] ?? PHP_INT_MAX;
 
-        while ($this->evaluate($args[0])) {
-            $this->evaluate($args[1]);
-        }
+        if (!is_int($min) || !is_int($max) ) throw new Error("Non-integer arguments passed to function number\\randomInt.");
+
+        return random_int($min, $max);
     }
 }

@@ -156,6 +156,7 @@ return [
         'ldapUserObjectClass',
         'maxEmailAccountCount',
         'massEmailMaxPerHourCount',
+        'massEmailSiteUrl',
         'personalEmailMaxPortionSize',
         'inboundEmailMaxPortionSize',
         'authTokenLifetime',
@@ -181,7 +182,10 @@ return [
         'authTokenPreventConcurrent',
         'emailParser',
         'passwordRecoveryDisabled',
+        'passwordRecoveryNoExposure',
         'passwordRecoveryForAdminDisabled',
+        'passwordRecoveryForInternalUsersDisabled',
+        'passwordRecoveryRequestDelay',
         'latestVersion',
     ],
     'superAdminItems' => [

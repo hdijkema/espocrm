@@ -140,21 +140,21 @@ class Email extends \Espo\Core\ORM\Entity
 
         $body = $this->get('body');
 
-        $breaks = array("<br />","<br>","<br/>","<br />","&lt;br /&gt;","&lt;br/&gt;","&lt;br&gt;");
+        $breaks = ["<br />","<br>","<br/>","<br />","&lt;br /&gt;","&lt;br/&gt;","&lt;br&gt;"];
         $body = str_ireplace($breaks, "\r\n", $body);
         $body = strip_tags($body);
 
         $reList = [
-            '/&(quot|#34);/i',
-            '/&(amp|#38);/i',
-            '/&(lt|#60);/i',
-            '/&(gt|#62);/i',
-            '/&(nbsp|#160);/i',
-            '/&(iexcl|#161);/i',
-            '/&(cent|#162);/i',
-            '/&(pound|#163);/i',
-            '/&(copy|#169);/i',
-            '/&(reg|#174);/i'
+            '&(quot|#34);',
+            '&(amp|#38);',
+            '&(lt|#60);',
+            '&(gt|#62);',
+            '&(nbsp|#160);',
+            '&(iexcl|#161);',
+            '&(cent|#162);',
+            '&(pound|#163);',
+            '&(copy|#169);',
+            '&(reg|#174);',
         ];
         $replaceList = [
             '',
@@ -166,10 +166,12 @@ class Email extends \Espo\Core\ORM\Entity
             chr(162),
             chr(163),
             chr(169),
-            chr(174)
+            chr(174),
         ];
 
-        $body = preg_replace($reList, $replaceList, $body);
+        foreach ($reList as $i => $re) {
+            $body = mb_ereg_replace($re, $replaceList[$i], $body, 'i');
+        }
 
         return $body;
     }

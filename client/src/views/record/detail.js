@@ -1487,10 +1487,19 @@ define('views/record/detail', ['views/record/base', 'view-record-helper'], funct
 
             for (var p in simplifiedLayout) {
                 var panel = {};
-                panel.label = simplifiedLayout[p].label || null;
+
                 if ('customLabel' in simplifiedLayout[p]) {
-                    panel.customLabel = simplifiedLayout[p].customLabel;
+                    panel.label = simplifiedLayout[p].customLabel;
+                    if (panel.label) {
+                        panel.label = this.getLanguage().translate(panel.label, 'panelCustomLabels', this.entityType);
+                    }
+                } else {
+                    panel.label = simplifiedLayout[p].label || null;
+                    if (panel.label) {
+                        panel.label = this.getLanguage().translate(panel.label, 'labels', this.entityType);
+                    }
                 }
+
                 panel.name = simplifiedLayout[p].name || null;
                 panel.style = simplifiedLayout[p].style || 'default';
                 panel.rows = [];
@@ -1837,8 +1846,14 @@ define('views/record/detail', ['views/record/base', 'view-record-helper'], funct
             }
         },
 
-        blockUpdateWebSocket: function () {
+        blockUpdateWebSocket: function (toUnblock) {
             this.updateWebSocketIsBlocked = true;
+
+            if (toUnblock) {
+                setTimeout(function () {
+                    this.unblockUpdateWebSocket();
+                }.bind(this), this.blockUpdateWebSocketPeriod || 500);
+            }
         },
 
         unblockUpdateWebSocket: function () {
