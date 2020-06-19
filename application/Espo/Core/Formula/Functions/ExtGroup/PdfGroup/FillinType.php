@@ -30,11 +30,13 @@
 namespace Espo\Core\Formula\Functions\ExtGroup\PdfGroup;
 
 use Espo\Core\Exceptions\Error;
-use mikehaertl\pdftk\Pdf
+use mikehaertl\pdftk\Pdf;
 
 #
-# arg1 - document-id
-# arg2 - filename
+# arg1 - for entity
+# arg2 - for entity-id
+# arg3 - document-id
+# arg4 - filename
 # and arg2 .. n: field, value, etc. 
 #
 
@@ -50,15 +52,17 @@ class FillinType extends \Espo\Core\Formula\Functions\Base
     {
         $args = $this->fetchArguments($item);
 
-        if (count($args) < 1) throw new Error("Formula ext\\pdf\\fillin: Too few arguments.");
+        if (count($args) < 4) throw new Error("Formula ext\\pdf\\fillin: Too few arguments.");
 
-	$document_id = shift $args;
-	$filename = shift $args;
+        $entity = array_shift($args);
+        $entity_id = array_shift($args);
+	$document_id = array_shift($args);
+	$filename = array_shift($args);
 
         $fields = [];
-        while(array_count($args) > 0) {
-            $field = shift $args;
-            $value = shift $args;
+        while(count($args) > 0) {
+            $field = array_shift($args);
+            $value = array_shift($args);
             $fields[$field] = $value;
         }
 
@@ -71,7 +75,7 @@ class FillinType extends \Espo\Core\Formula\Functions\Base
             return null;
         }
 
-        if ($fileName) {
+        if ($filename) {
             if (substr($fileName, -4) !== '.pdf') {
                 $fileName .= '.pdf';
             }
@@ -80,32 +84,43 @@ class FillinType extends \Espo\Core\Formula\Functions\Base
             return null;
         }
 
-	$file_id = $document->get('file_id');
-        $attachment = $this->getEntityManager()->getEntity('Attachment', $file_id);
+	$file_id = $document->get('fileId');
+        $GLOBALS['log']->warning("Formula ext\\pdf\\fillin: file_id: {$file_id}");
+        
+        $attachment = $em->getEntity('Attachment', $file_id);
         if (!$attachment) {
             $GLOBALS['log']->warning("Formula ext\\pdf\\fillin: filename not found.");
             return null;
         }
 
-	$pdf_in_filename = $this->getEntityManager()->getRepository('Attachment')->getFilePath($attachment);
-        $pdf_out_filename = "/tmp/$filename";
+	$pdf_in_filename = $em->getRepository('Attachment')->getFilePath($attachment);
+        $tmpdir = sys_get_temp_dir();
+        $pdf_out_filename = "$tmpdir/$filename";
+
+        $GLOBALS['log']->warning("Formula ext\\pdf\\fillin: pdf file in: {$pdf_in_filename}");
 
         $pdf = new Pdf($pdf_in_filename);
         $pdf->fillForm($fields);
         $pdf->needAppearances();
         $pdf->saveAs($pdf_out_filename);
-        $contents = file_get_contents($pdf_out_filename);
-        unlink($pdf_out_filename);
 
-        $attachment = $em->createEntity('Attachment', [
-            'name' => $fileName,
-            'type' => 'application/pdf',
-            'contents' => $contents,
-            'relatedId' => $id,
-            'relatedType' => $entityType,
-            'role' => 'Attachment',
-        ]);
+        if (file_exists($pdf_out_filename)) {
+            $contents = file_get_contents($pdf_out_filename);
+            unlink($pdf_out_filename);
 
-        return $attachment->id;
+            $attachment = $em->createEntity('Attachment', [
+                'name' => $filename,
+                'type' => 'application/pdf',
+                'contents' => $contents,
+                'relatedId' => $entity_id,
+                'relatedType' => $entity,
+                'role' => 'Attachment',
+            ]);
+
+            return $attachment->id;
+       } else {
+            $GLOBALS['log']->warning("Formula ext\\pdf\\fillin: output filename {$pdf_out_filename} not found.");
+            return null;
+       }
     }
 }

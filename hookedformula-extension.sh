@@ -24,6 +24,11 @@ CORE_FILES="$CORE_FILES application/Espo/Core/Formula/Functions/ConfigGetType.ph
 CORE_FILES="$CORE_FILES application/Espo/Core/Formula/Functions/ConfigIncType.php"
 CORE_FILES="$CORE_FILES application/Espo/Core/Formula/Functions/ConfigSetType.php"
 CORE_FILES="$CORE_FILES application/Espo/Core/Formula/Functions/ExtGroup/PdfGroup/FillinType.php"
+CORE_FILES="$CORE_FILES application/Espo/Core/Formula/Functions/ExtGroup/HtmlizeType.php"
+CORE_FILES="$CORE_FILES application/Espo/Core/Formula/Functions/AttrType.php"
+CORE_FILES="$CORE_FILES application/Espo/Core/Formula/Functions/EntityGroup/GetRelatedType.php"
+CORE_FILES="$CORE_FILES application/Espo/Core/Formula/Functions/EntityGroup/GetType.php"
+CORE_FILES="$CORE_FILES application/Espo/Core/Formula/Functions/EntityGroup/ThisType.php"
 
 
 FILES="$CLIENT_FILES $FORMULA_FILES $POLL_FILES $CORE_FILES"
