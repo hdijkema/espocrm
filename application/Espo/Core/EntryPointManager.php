@@ -25,41 +25,20 @@
  *
  * In accordance with Section 7(b) of the GNU General Public License version 3,
  * these Appropriate Legal Notices must retain the display of the "EspoCRM" word.
- ************************************************************************/ 
+ ************************************************************************/
 
 namespace Espo\Core;
-use \Espo\Core\Exceptions\NotFound,
-    \Espo\Core\Utils\Util;
 
+use Espo\Core\Exceptions\NotFound,
+    Espo\Core\Utils\Util;
 
 class EntryPointManager
 {
     private $container;
 
-    private $fileManager;
-
-    protected $data = null;
-
-    protected $cacheFile = 'data/cache/application/entryPoints.php';
-
-    protected $allowedMethods = array(
-        'run',
-    );
-
-    /**
-     * @var array - path to entryPoint files
-     */
-    private $paths = array(
-        'corePath' => 'application/Espo/EntryPoints',
-        'modulePath' => 'application/Espo/Modules/{*}/EntryPoints',
-        'customPath' => 'custom/Espo/Custom/EntryPoints',
-    );
-
-
     public function __construct(\Espo\Core\Container $container)
     {
         $this->container = $container;
-        $this->fileManager = $container->get('fileManager');
     }
 
     protected function getContainer()
@@ -67,21 +46,18 @@ class EntryPointManager
         return $this->container;
     }
 
-    protected function getFileManager()
-    {
-        return $this->fileManager;
-    }
-
-    public function checkAuthRequired($name)
+    public function checkAuthRequired(string $name) : bool
     {
         $className = $this->getClassName($name);
         if (!$className) {
+            echo $name;
+            die;
             throw new NotFound();
         }
         return $className::$authRequired;
     }
 
-    public function checkNotStrictAuth($name)
+    public function checkNotStrictAuth(string $name) : bool
     {
         $className = $this->getClassName($name);
         if (!$className) {
@@ -90,7 +66,7 @@ class EntryPointManager
         return $className::$notStrictAuth;
     }
 
-    public function run($name, $data = array())
+    public function run(string $name, array $data = [])
     {
         $className = $this->getClassName($name);
         if (!$className) {
@@ -101,29 +77,9 @@ class EntryPointManager
         $entryPoint->run($data);
     }
 
-    protected function getClassName($name)
+    protected function getClassName(string $name) : ?string
     {
-        $name = Util::normilizeClassName($name);
-
-        if (!isset($this->data)) {
-            $this->init();
-        }
-
         $name = ucfirst($name);
-        if (isset($this->data[$name])) {
-            return $this->data[$name];
-        }
-
-        return false;
+        return $this->getContainer()->get('classFinder')->find('EntryPoints', $name);
     }
-
-
-    protected function init()
-    {
-        $classParser = $this->getContainer()->get('classParser');
-        $classParser->setAllowedMethods($this->allowedMethods);
-        $this->data = $classParser->getData($this->paths, $this->cacheFile);
-    }
-
 }
-

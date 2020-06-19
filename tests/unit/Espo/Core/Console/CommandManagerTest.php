@@ -27,59 +27,44 @@
  * these Appropriate Legal Notices must retain the display of the "EspoCRM" word.
  ************************************************************************/
 
-namespace Espo\Core;
+namespace tests\unit\Espo\Core\Console;
 
-use Espo\Core\Exceptions\Error;
+use tests\unit\ReflectionHelper;
 
-class ServiceFactory
+class CommandManagerTest extends \PHPUnit\Framework\TestCase
 {
-    private $container;
 
-    public function __construct(Container $container)
+    protected function setUp() : void
     {
-        $this->container = $container;
+        $container = $this->container =
+            $this->getMockBuilder('\\Espo\\Core\\Container')->disableOriginalConstructor()->getMock();
+
+        $this->object = new \Espo\Core\Console\CommandManager($container);
+
+        $this->reflection = new ReflectionHelper($this->object);
     }
 
-    protected function getContainer()
+    protected function tearDown() : void
     {
-        return $this->container;
     }
 
-    protected function getClassName($name)
+    public function testGetParams1()
     {
-        return $this->getContainer()->get('classFinder')->find('Services', $name);
+        $argv = ['command.php', 'command-name', 'a1', 'a2', '--flag', '--flag-a', '-f', '--option-one=test'];
+        $params = $this->reflection->invokeMethod('getParams', [$argv]);
+
+        $this->assertEquals(['a1', 'a2'], $params['argumentList']);
+        $this->assertEquals(['flag', 'flagA', 'f'], $params['flagList']);
+        $this->assertEquals(['optionOne' => 'test'], $params['options']);
     }
 
-    public function checkExists($name) {
-        $className = $this->getClassName($name);
-        if (!$className) {
-            return false;
-        }
-        return true;
-    }
-
-    public function create($name)
+    public function testGetParams2()
     {
-        $className = $this->getClassName($name);
-        if (!$className) {
-            throw new Error("Service '{$name}' was not found.");
-        }
-        return $this->createByClassName($className);
-    }
+        $argv = ['command-name', 'a1', 'a2', '--flag', '--flag-a', '-f', '--option-one=test'];
+        $params = $this->reflection->invokeMethod('getParams', [$argv]);
 
-    protected function createByClassName($className)
-    {
-        if (class_exists($className)) {
-            $service = new $className();
-            $dependencyList = $service->getDependencyList();
-            foreach ($dependencyList as $name) {
-                $service->inject($name, $this->container->get($name));
-            }
-            if (method_exists($service, 'prepare')) {
-                $service->prepare();
-            }
-            return $service;
-        }
-        throw new Error("Class '$className' does not exist.");
+        $this->assertEquals(['a1', 'a2'], $params['argumentList']);
+        $this->assertEquals(['flag', 'flagA', 'f'], $params['flagList']);
+        $this->assertEquals(['optionOne' => 'test'], $params['options']);
     }
 }

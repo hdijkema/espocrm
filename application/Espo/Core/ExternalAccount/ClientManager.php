@@ -29,9 +29,11 @@
 
 namespace Espo\Core\ExternalAccount;
 
-use \Espo\Core\Exceptions\Error;
-use \Espo\Core\Exceptions\Forbidden;
-use \Espo\Core\Exceptions\NotFound;
+use Espo\Core\Exceptions\Error;
+use Espo\Core\Exceptions\Forbidden;
+use Espo\Core\Exceptions\NotFound;
+
+use Espo\Core\InjectableFactory;
 
 class ClientManager
 {
@@ -39,13 +41,17 @@ class ClientManager
 
     protected $metadata;
 
-    protected $clientMap = array();
+    protected $clientMap = [];
 
-    public function __construct($entityManager, $metadata, $config)
+    protected $injectableFactory = null;
+
+    public function __construct(
+        $entityManager, $metadata, $config, ?InjectableFactory $injectableFactory = null)
     {
         $this->entityManager = $entityManager;
         $this->metadata = $metadata;
         $this->config = $config;
+        $this->injectableFactory = $injectableFactory;
     }
 
     protected function getMetadata()
@@ -77,25 +83,60 @@ class ClientManager
 
             $copy = $this->getEntityManager()->getEntity('ExternalAccount', $externalAccountEntity->id);
             if ($copy) {
+                if (!$copy->get('enabled')) {
+                    throw new Error("External Account Client Manager: Account got disabled.");
+                }
+
                 $copy->set('accessToken', $data['accessToken']);
                 $copy->set('tokenType', $data['tokenType']);
                 $copy->set('expiresAt', $data['expiresAt'] ?? null);
                 if ($data['refreshToken'] ?? null) {
                     $copy->set('refreshToken', $data['refreshToken'] ?? null);
                 }
-                $this->getEntityManager()->saveEntity($copy, ['isTokenRenewal' => true]);
+                $this->getEntityManager()->saveEntity($copy, ['isTokenRenewal' => true, 'skipHooks' => true]);
             }
         }
     }
 
-    public function create($integration, $userId)
+    public function create(string $integration, string $userId)
     {
         $authMethod = $this->getMetadata()->get("integrations.{$integration}.authMethod");
         $methodName = 'create' . ucfirst($authMethod);
-        return $this->$methodName($integration, $userId);
+
+        if (method_exists($this, $methodName)) {
+            return $this->$methodName($integration, $userId);
+        }
+
+        if (!$this->injectableFactory) {
+            throw new Error();
+        }
+
+        $integrationEntity = $this->getEntityManager()->getEntity('Integration', $integration);
+        $externalAccountEntity = $this->getEntityManager()->getEntity('ExternalAccount', $integration . '__' . $userId);
+
+        if (!$externalAccountEntity) {
+            throw new Error("External Account {$integration} not found for {$userId}");
+        }
+
+        if (!$integrationEntity->get('enabled')) return null;
+        if (!$externalAccountEntity->get('enabled')) return null;
+
+        $className = $this->getMetadata()->get("integrations.{$integration}.clientClassName");
+        $client = $this->injectableFactory->createByClassName($className);
+
+        $client->setup(
+            $userId,
+            $integrationEntity,
+            $externalAccountEntity,
+            $this
+        );
+
+        $this->addToClientMap($client, $integrationEntity, $externalAccountEntity, $userId);
+
+        return $client;
     }
 
-    protected function createOAuth2($integration, $userId)
+    protected function createOAuth2(string $integration, string $userId)
     {
         $integrationEntity = $this->getEntityManager()->getEntity('Integration', $integration);
         $externalAccountEntity = $this->getEntityManager()->getEntity('ExternalAccount', $integration . '__' . $userId);
@@ -122,7 +163,7 @@ class ClientManager
 
         $oauth2Client = new \Espo\Core\ExternalAccount\OAuth2\Client();
 
-        $client = new $className($oauth2Client, array(
+        $params = [
             'endpoint' => $this->getMetadata()->get("integrations.{$integration}.params.endpoint"),
             'tokenEndpoint' => $this->getMetadata()->get("integrations.{$integration}.params.tokenEndpoint"),
             'clientId' => $integrationEntity->get('clientId'),
@@ -131,7 +172,16 @@ class ClientManager
             'accessToken' => $externalAccountEntity->get('accessToken'),
             'refreshToken' => $externalAccountEntity->get('refreshToken'),
             'tokenType' => $externalAccountEntity->get('tokenType'),
-        ), $this);
+            'expiresAt' => $externalAccountEntity->get('expiresAt'),
+        ];
+
+        foreach (get_object_vars($integrationEntity->getValueMap()) as $k => $v) {
+            if (array_key_exists($k, $params)) continue;
+            if ($integrationEntity->hasAttribute($k)) continue;
+            $params[$k] = $v;
+        }
+
+        $client = new $className($oauth2Client, $params, $this);
 
         $this->addToClientMap($client, $integrationEntity, $externalAccountEntity, $userId);
 
@@ -148,5 +198,82 @@ class ClientManager
             'externalAccountEntity' => $externalAccountEntity,
         );
     }
-}
 
+    protected function getClientRecord($client) : \Espo\ORM\Entity
+    {
+        $data = $this->clientMap[spl_object_hash($client)];
+
+        if (!$data) {
+            throw new Error("External Account Client Manager: Client not found in hash.");
+        }
+
+        return $data['externalAccountEntity'];
+    }
+
+    public function isClientLocked($client) : bool
+    {
+        $externalAccountEntity = $this->getClientRecord($client);
+        $id = $externalAccountEntity->id;
+
+        $e = $this->getEntityManager()->getRepository('ExternalAccount')
+            ->select(['id', 'isLocked'])->where(['id' => $id])->findOne();
+
+        if (!$e) {
+            throw new Error("External Account Client Manager: Client {$id} not found in DB.");
+        }
+
+        return $e->get('isLocked');
+    }
+
+    public function lockClient($client)
+    {
+        $externalAccountEntity = $this->getClientRecord($client);
+        $id = $externalAccountEntity->id;
+
+        $e = $this->getEntityManager()->getRepository('ExternalAccount')
+            ->select(['id', 'isLocked'])->where(['id' => $id])->findOne();
+
+        if (!$e) {
+            throw new Error("External Account Client Manager: Client {$id} not found in DB.");
+        }
+
+        $e->set('isLocked', true);
+
+        $this->getEntityManager()->saveEntity($e, ['skipHooks' => true, 'silent' => true]);
+    }
+
+    public function unlockClient($client)
+    {
+        $externalAccountEntity = $this->getClientRecord($client);
+        $id = $externalAccountEntity->id;
+
+        $e = $this->getEntityManager()->getRepository('ExternalAccount')
+            ->select(['id', 'isLocked'])->where(['id' => $id])->findOne();
+
+        if (!$e) {
+            throw new Error("External Account Client Manager: Client {$id} not found in DB.");
+        }
+
+        $e->set('isLocked', false);
+
+        $this->getEntityManager()->saveEntity($e, ['skipHooks' => true, 'silent' => true]);
+    }
+
+    public function reFetchClient($client)
+    {
+        $externalAccountEntity = $this->getClientRecord($client);
+        $id = $externalAccountEntity->id;
+
+        $e = $this->getEntityManager()->getEntity('ExternalAccount', $id);
+
+        if (!$e) {
+            throw new Error("External Account Client Manager: Client {$id} not found in DB.");
+        }
+
+        $data = $e->getValueMap();
+
+        $externalAccountEntity->set($data);
+
+        $client->setParams(get_object_vars($data));
+    }
+}

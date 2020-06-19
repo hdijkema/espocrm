@@ -29,12 +29,13 @@
 
 namespace Espo\Services;
 
-use \Espo\Core\Exceptions\Forbidden;
-use \Espo\Core\Exceptions\NotFound;
-use \Espo\Core\Exceptions\Error;
-use \Espo\Core\Exceptions\BadRequest;
+use Espo\Core\Exceptions\Forbidden;
+use Espo\Core\Exceptions\NotFound;
+use Espo\Core\Exceptions\Error;
+use Espo\Core\Exceptions\BadRequest;
 
 use Espo\ORM\Entity;
+use Espo\Entities\User;
 
 class Import extends \Espo\Services\Record
 {
@@ -151,6 +152,18 @@ class Import extends \Espo\Services\Record
         ];
     }
 
+    public function uploadFile($contents)
+    {
+        $attachment = $this->getEntityManager()->getEntity('Attachment');
+        $attachment->set('type', 'text/csv');
+        $attachment->set('role', 'Import File');
+        $attachment->set('name', 'import-file.csv');
+        $attachment->set('contents', $contents);
+        $this->getEntityManager()->saveEntity($attachment);
+
+        return $attachment->id;
+    }
+
     protected function readCsvString(&$string, $CSV_SEPARATOR = ';', $CSV_ENCLOSURE = '"', $CSV_LINEBREAK = "\n")
     {
         $o = [];
@@ -215,15 +228,15 @@ class Import extends \Espo\Services\Record
         return $o;
     }
 
-    public function revert($id)
+    public function revert(string $id)
     {
         $import = $this->getEntityManager()->getEntity('Import', $id);
         if (empty($import)) {
-            throw new NotFound();
+            throw new NotFound("Could not find import record.");
         }
 
         if (!$this->getAcl()->check($import, 'delete')) {
-            throw new Forbidden();
+            throw new Forbidden("No access import record.");
         }
 
         $pdo = $this->getEntityManager()->getPDO();
@@ -270,7 +283,7 @@ class Import extends \Espo\Services\Record
         return true;
     }
 
-    public function removeDuplicates($id)
+    public function removeDuplicates(string $id)
     {
         $import = $this->getEntityManager()->getEntity('Import', $id);
         if (empty($import)) {
@@ -299,7 +312,7 @@ class Import extends \Espo\Services\Record
             if ($entity) {
                 $this->getEntityManager()->removeEntity($entity);
             }
-            $this->getEntityManager()->getRepository($entity->getEntityType())->deleteFromDb($entityId);
+            $this->getEntityManager()->getRepository($entityType)->deleteFromDb($entityId);
         }
 
         return true;
@@ -336,7 +349,92 @@ class Import extends \Espo\Services\Record
         $this->import($entityType, $importAttributeList, $attachmentId, $params, $importId, $user);
     }
 
-    public function import($scope, array $importAttributeList, $attachmentId, array $params = [], $importId = null, $user = null)
+    public function importById(string $id, bool $startFromLastIndex = false, $forceResume = false) : array
+    {
+        $import = $this->getEntityManager()->getEntity('Import', $id);
+
+        if (!$import) {
+            throw new NotFound("Import '{$id}' not found.");
+        }
+
+        $status = $import->get('status');
+
+        if ($status !== 'Standby') {
+            if (in_array($status, ['In Process', 'Failed'])) {
+                if (!$forceResume) {
+                    throw new Forbidden("Import has '{$status}' status. Use -r flag to force resume.");
+                }
+            } else {
+                throw new Forbidden("Can't run import with '{$status}' status.");
+            }
+        }
+
+        $entityType = $import->get('entityType');
+        $attributeList = $import->get('attributeList') ?? [];
+
+        $params = $import->get('params') ?? (object) [];
+        $params = json_decode(json_encode($params), true);
+
+        $params['startFromLastIndex'] = $startFromLastIndex;
+
+        return $this->import($entityType, $attributeList, $import->get('fileId'), $params, $id);
+    }
+
+    public function importFileWithParamsId(string $contents, string $importParamsId)
+    {
+        if (!$contents) {
+            throw new Error("File contents is empty.");
+        }
+
+        $source = $this->getEntityManager()->getEntity('Import', $importParamsId);
+
+        if (!$source) {
+            throw new Error("Import {$importParamsId} not found.");
+        }
+
+        $entityType = $source->get('entityType');
+        $attributeList = $source->get('attributeList') ?? [];
+
+        $params = $source->get('params') ?? (object) [];
+        $params = json_decode(json_encode($params), true);
+
+        unset($params['idleMode']);
+        unset($params['manualMode']);
+
+        $attachmentId = $this->uploadFile($contents);
+
+        return $this->import($entityType, $attributeList, $attachmentId, $params);
+    }
+
+    /**
+     * @param array $params [
+     *    'delimiter' => (string),
+     *    'textQualifier' => (string),
+     *    'idleMode' => (bool),
+     *    'manualMode' => (bool),
+     *    'silentMode' => (bool),
+     *    'headerRow' => (bool),
+     *    'action' => (string),
+     *    'skipDuplicateChecking' => (bool),
+     *    'updateBy' => (array),
+     *    'defaultValues' => (array|object),
+     *    'textQualifier' => (string),
+     *    'personNameFormat' => (string),
+     *    'delimiter' => (string),
+     *    'timeFormat' => (string),
+     *    'currency' => (string),
+     *    'timezone' => (string),
+     *    'startFromLastIndex' => (bool),
+     * ]
+     * @return array [
+     *     'id' => (string),
+     *     'countCreated' => (int),
+     *     'countUpdated' => (int),
+     * ]
+     */
+    public function import(
+        string $scope, array $importAttributeList, string $attachmentId, array $params = [], ?string $importId = null,
+        ?User $user = null) : array
     {
         $delimiter = ',';
         if (!empty($params['delimiter'])) {
@@ -376,23 +474,51 @@ class Import extends \Espo\Services\Record
             throw new Error('Import error');
         }
 
+        $startFromIndex = null;
+
         if ($importId) {
             $import = $this->getEntityManager()->getEntity('Import', $importId);
             if (!$import) {
                 throw new Error('Import: Could not find import record.');
             }
+
+            if ($params['startFromLastIndex'] ?? false) {
+                $startFromIndex = $import->get('lastIndex');
+            }
+
+            $import->set('status', 'In Process');
         } else {
             $import = $this->getEntityManager()->getEntity('Import');
             $import->set([
                 'entityType' => $scope,
                 'fileId' => $attachmentId
             ]);
+
             $import->set('status', 'In Process');
+
+            if ($params['manualMode'] ?? false) {
+                unset($params['idleMode']);
+                $import->set('status', 'Standby');
+            } else if ($params['idleMode'] ?? false) {
+                $import->set('status', 'Pending');
+            }
+
+            $import->set('params', $params);
+            $import->set('attributeList', $importAttributeList);
         }
 
         $this->getEntityManager()->saveEntity($import);
 
         $this->processActionHistoryRecord('create', $import);
+
+        if (!$importId && ($params['manualMode'] ?? false)) {
+            return [
+                'id' => $import->id,
+                'countCreated' => 0,
+                'countUpdated' => 0,
+                'manualMode' => true,
+            ];
+        }
 
         if (!empty($params['idleMode'])) {
             $params['idleMode'] = false;
@@ -433,6 +559,7 @@ class Import extends \Espo\Services\Record
 
             while ($arr = $this->readCsvString($contents, $delimiter, $enclosure)) {
                 $i++;
+
                 if ($i == 0 && !empty($params['headerRow'])) {
                     continue;
                 }
@@ -440,10 +567,20 @@ class Import extends \Espo\Services\Record
                 if (count($arr) == 1 && empty($arr[0]) && count($importAttributeList) > 1) {
                     continue;
                 }
+
+                if (!is_null($startFromIndex) && $i <= $startFromIndex) {
+                    continue;
+                }
+
                 $r = $this->importRow($scope, $importAttributeList, $arr, $params, $user);
+
                 if (empty($r)) {
                     continue;
                 }
+
+                $import->set('lastIndex', $i);
+                $this->getEntityManager()->saveEntity($import, ['skipHooks' => true, 'silent' => true]);
+
                 if (!empty($r['isImported'])) {
                     $result['importedIds'][] = $r['id'];
                 }

@@ -27,22 +27,24 @@
  * these Appropriate Legal Notices must retain the display of the "EspoCRM" word.
  ************************************************************************/
 
-namespace Espo\Core\Loaders;
+namespace tests\integration\Espo\Core\Utils;
 
-class SelectManagerFactory extends Base
+class ClassFinder extends \tests\integration\Core\BaseTestCase
 {
-    public function load()
+    public function testFind1()
     {
-        return new \Espo\Core\SelectManagerFactory(
-            $this->getContainer()->get('entityManager'),
-            $this->getContainer()->get('user'),
-            $this->getContainer()->get('acl'),
-            $this->getContainer()->get('aclManager'),
-            $this->getContainer()->get('metadata'),
-            $this->getContainer()->get('config'),
-            $this->getContainer()->get('fieldManagerUtil'),
-            $this->getContainer()->get('injectableFactory'),
-            $this->getContainer()->get('classFinder')
+        $classFinder = $this->getContainer()->get('classFinder');
+
+        $this->assertEquals(
+            '\\Espo\\Modules\\Crm\\Services\\Account',
+            $classFinder->find('Services', 'Account')
         );
+
+        $this->assertEquals(
+            '\\Espo\\Services\\Record',
+            $classFinder->find('Services', 'Record')
+        );
+
+        $this->assertTrue(file_exists('data/cache/application/classmap_services.php'));
     }
 }
