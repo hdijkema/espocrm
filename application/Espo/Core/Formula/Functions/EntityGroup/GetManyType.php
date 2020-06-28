@@ -31,7 +31,7 @@ namespace Espo\Core\Formula\Functions\EntityGroup;
 
 use Espo\Core\Exceptions\Error;
 
-class GetRelatedType extends \Espo\Core\Formula\Functions\Base
+class GetManyType extends \Espo\Core\Formula\Functions\Base
 {
     protected function init()
     {
@@ -44,24 +44,20 @@ class GetRelatedType extends \Espo\Core\Formula\Functions\Base
     {
         $args = $this->fetchArguments($item);
 
-        if (count($args) < 3) {
-             throw new Error("Formula entity\\getRelated: Too few arguments.");
+        if (count($args) < 2) {
+             throw new Error("Formula entity\\getMany: Too few arguments.");
         }
 
         $entityManager = $this->getInjection('entityManager');
 
         $entity = $args[0];
-        $link = $args[1];
-        $limit = $args[2];
+        $limit = $args[1];
 
         $orderBy = null;
         $order = null;
 
-        if (count($args) > 3) { $orderBy = $args[3]; }
-        if (count($args) > 4) { $order = $args[4]; }
-
-        if (!$link) throw new Error("Formula entity\\getRelated: Empty link.");
-        if (!is_string($link)) throw new Error("Formula entity\\getRelated: link should be string.");
+        if (count($args) > 2) { $orderBy = $args[2]; }
+        if (count($args) > 3) { $order = $args[3]; }
 
         if (!is_int($limit)) throw new Error("Formula entity\\GetRelated: limit should be int.");
 
@@ -76,40 +72,20 @@ class GetRelatedType extends \Espo\Core\Formula\Functions\Base
             $order = $order ?? 'asc';
         }
 
-        $relationType = $entity->getRelationParam($link, 'type');
-
-        if (in_array($relationType, ['belongsTo', 'hasOne', 'belongsToParent'])) {
-            throw new Error("Formula entity\\getRelated: Not supported link type '{$relationType}'.");
-        }
-
-        $foreignEntityType = $entity->getRelationParam($link, 'entity');
-        if (!$foreignEntityType) throw new Error("Formula entity\\getRelated: Bad or not supported link '{$link}'.");
-
-        $foreignLink = $entity->getRelationParam($link, 'foreign');
-        if (!$foreignLink) throw new Error("Formula entity\\getRelated: Not supported link '{$link}'.");
-
-        $selectManager = $this->getInjection('selectManagerFactory')->create($foreignEntityType);
+        $selectManager = $this->getInjection('selectManagerFactory')->create($entity);
         $selectParams = $selectManager->getEmptySelectParams();
 
-        if ($relationType === 'hasChildren') {
-            $selectParams['whereClause'][] = [$foreignLink . 'Id' => $entity->id];
-            $selectParams['whereClause'][] = [$foreignLink . 'Type' => $entity->getEntityType()];
-        } else {
-            $selectManager->addJoin($foreignLink, $selectParams);
-            $selectParams['whereClause'][] = [$foreignLink . '.id' => $entity->id];
-        }
-
-        if (count($args) <= 6) {
+        if (count($args) <= 4) {
             $filter = null;
-            if (count($args) == 6) {
-                $filter = $args[5];
+            if (count($args) == 5) {
+                $filter = $args[4];
             }
             if ($filter) {
                 if (!is_string($filter)) throw new Error("Formula entity\\getRelated: Bad filter.");
                 $selectManager->applyFilter($filter, $selectParams);
             }
         } else {
-            $i = 5;
+            $i = 4;
             while ($i < count($args) - 1) {
                 $key = $args[$i];
                 $value = $args[$i + 1];
@@ -124,11 +100,11 @@ class GetRelatedType extends \Espo\Core\Formula\Functions\Base
             $selectManager->applyOrder($orderBy, $order, $selectParams);
         }
 
-        $collection = $entityManager->getRepository($foreignEntityType)->select(['id'])->find($selectParams);
+        $collection = $entityManager->getRepository($entity)->select(['id'])->find($selectParams);
 
         $entities = [];   
         foreach ($collection as $e) {
-            $entities[] = $entityManager->getEntity($foreignEntityType, $e->id);
+            $entities[] = $entityManager->getEntity($entity, $e->id);
         }
         return $entities;
     }

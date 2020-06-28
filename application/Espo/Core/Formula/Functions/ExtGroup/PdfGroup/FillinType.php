@@ -72,8 +72,12 @@ class FillinType extends \Espo\Core\Formula\Functions\Base
 
         if (!$document) {
             $GLOBALS['log']->warning("Formula ext\\pdf\\fillin: document {$document_id} does not exist.");
-            return null;
+            $GLOBALS['log']->warning("Formula ext\\pdf\\fillin: file identifier assumed.");
+            $file_id = $document_id;
+        } else {
+	    $file_id = $document->get('fileId');
         }
+        $GLOBALS['log']->warning("Formula ext\\pdf\\fillin: file_id: {$file_id}");
 
         if ($filename) {
             if (substr($fileName, -4) !== '.pdf') {
@@ -83,9 +87,6 @@ class FillinType extends \Espo\Core\Formula\Functions\Base
             $GLOBALS['log']->warning("Formula ext\\pdf\\fillin: filename must be given.");
             return null;
         }
-
-	$file_id = $document->get('fileId');
-        $GLOBALS['log']->warning("Formula ext\\pdf\\fillin: file_id: {$file_id}");
         
         $attachment = $em->getEntity('Attachment', $file_id);
         if (!$attachment) {

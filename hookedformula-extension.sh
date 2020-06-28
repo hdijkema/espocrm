@@ -29,6 +29,7 @@ CORE_FILES="$CORE_FILES application/Espo/Core/Formula/Functions/AttrType.php"
 CORE_FILES="$CORE_FILES application/Espo/Core/Formula/Functions/EntityGroup/GetRelatedType.php"
 CORE_FILES="$CORE_FILES application/Espo/Core/Formula/Functions/EntityGroup/GetType.php"
 CORE_FILES="$CORE_FILES application/Espo/Core/Formula/Functions/EntityGroup/ThisType.php"
+CORE_FILES="$CORE_FILES application/Espo/Core/Formula/Functions/EntityGroup/GetManyType.php"
 
 
 FILES="$CLIENT_FILES $FORMULA_FILES $POLL_FILES $CORE_FILES"
