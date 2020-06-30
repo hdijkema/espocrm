@@ -76,16 +76,18 @@ class CountType extends \Espo\Core\Formula\Functions\Base
             return $this->getInjection('entityManager')->getRepository($entityType)->count($selectParams);
         }
 
-        $whereClause = [];
+	# Count with where-part
+ 	$selectManager = $this->getInjection('selectManagerFactory')->create($entityType);
+	$selectParams = $selectManager->getEmptySelectParams();
 
         $i = 1;
         while ($i < count($item->value) - 1) {
             $key = $this->evaluate($item->value[$i]);
             $value = $this->evaluate($item->value[$i + 1]);
-            $whereClause[$key] = $value;
+            $selectParams['whereClause'][] = [ $key => $value ];
             $i = $i + 2;
         }
 
-        return $this->getInjection('entityManager')->getRepository($entityType)->where($whereClause)->count();
+        return $this->getInjection('entityManager')->getRepository($entityType)->count($selectParams);
     }
 }
