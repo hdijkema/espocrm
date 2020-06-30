@@ -29,86 +29,32 @@
 
 namespace Espo\Core\ORM;
 
-use Espo\Core\Utils\Util;
+use Espo\Entities\User;
 
-class EntityManager extends \Espo\ORM\EntityManager
+use Espo\Core\{
+    Utils\Metadata as EspoMetadata,
+    HookManager,
+    Utils\Util,
+};
+
+use Espo\ORM\EntityManager as BaseEntityManager;
+
+class EntityManager extends BaseEntityManager
 {
-    protected $espoMetadata;
-
-    private $hookManager;
-
-    protected $user;
-
-    protected $container;
-
-    private $repositoryClassNameHash = [];
-
-    private $entityClassNameHash = [];
-
     private $helper;
 
-    public function setContainer(\Espo\Core\Container $container)
-    {
-        $this->container = $container;
-    }
+    public function __construct(
+        array $params,
+        RepositoryFactory $repositoryFactory,
+        EntityFactory $entityFactory,
+        Helper $helper
+    ) {
+        parent::__construct($params, $repositoryFactory, $entityFactory);
 
-    public function getContainer()
-    {
-        return $this->container;
-    }
-
-    public function setUser($user)
-    {
-        $this->user = $user;
-    }
-
-    public function getUser()
-    {
-        return $this->user;
-    }
-
-    public function getEspoMetadata()
-    {
-        return $this->espoMetadata;
-    }
-
-    public function setEspoMetadata($espoMetadata)
-    {
-        $this->espoMetadata = $espoMetadata;
-    }
-
-    public function setHookManager(\Espo\Core\HookManager $hookManager)
-    {
-        $this->hookManager = $hookManager;
-    }
-
-    public function getHookManager()
-    {
-        return $this->hookManager;
-    }
-
-    public function getRepositoryClassName($name)
-    {
-        if (!array_key_exists($name, $this->repositoryClassNameHash)) {
-            $this->repositoryClassNameHash[$name] = $this->getContainer()->get('classFinder')->find('Repositories', $name);
-        }
-        return $this->repositoryClassNameHash[$name];
-    }
-
-    public function getEntityClassName($name)
-    {
-        if (!array_key_exists($name, $this->entityClassNameHash)) {
-            $this->entityClassNameHash[$name] = $this->getContainer()->get('classFinder')->find('Entities', $name);
-        }
-        return $this->entityClassNameHash[$name];
-    }
-
-    public function setHelper(Helper $helper)
-    {
         $this->helper = $helper;
     }
 
-    public function getHelper()
+    public function getHelper() : Helper
     {
         return $this->helper;
     }

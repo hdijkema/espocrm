@@ -1,10 +1,6 @@
 <?php
 /************************************************************************
  * This file is part of EspoCRM.
- * 
- * Modified for this HookedFormula extension.
- * (c) 2020 Hans Dijkema.
- * https://github.com/hdijkema/espocrm
  *
  * EspoCRM - Open Source CRM application.
  * Copyright (C) 2014-2020 Yuri Kuznetsov, Taras Machyshyn, Oleksiy Avramenko
@@ -34,26 +30,23 @@
 namespace Espo\Hooks\Common;
 
 use Espo\ORM\Entity;
-use Espo\Core\Utils\Util;
 
-class Formula extends \Espo\Core\Hooks\Base
+use Espo\Core\{
+    Utils\Metadata,
+    Formula\Manager as FormulaManager,
+};
+
+class Formula
 {
     public static $order = 11;
 
-    protected function init()
-    {
-        $this->addDependency('metadata');
-        $this->addDependency('formulaManager');
-    }
+    protected $metadata;
+    protected $formulaManager;
 
-    protected function getMetadata()
+    public function __construct(Metadata $metadata, FormulaManager $formulaManager)
     {
-        return $this->getInjection('metadata');
-    }
-
-    protected function getFormulaManager()
-    {
-        return $this->getInjection('formulaManager');
+        $this->metadata = $metadata;
+        $this->formulaManager = $formulaManager;
     }
 
     protected function getScript($script, $hook)
@@ -110,7 +103,7 @@ class Formula extends \Espo\Core\Hooks\Base
             }
         }
 
-        $customScript = $this->getMetadata()->get(['formula', $entity->getEntityType(), 'beforeSaveCustomScript']);
+        $customScript = $this->metadata->get(['formula', $entity->getEntityType(), 'beforeSaveCustomScript']);
         if ($customScript) {
 	    $customScript = $this->getScript($customScript, $hook);
             if ($customScript) {

@@ -35,13 +35,26 @@ use Espo\Core\ORM\EntityManager;
 use Espo\Core\Utils\Auth;
 use Espo\Entities\AuthToken;
 
+use Espo\Core\Container;
+
 class LDAP extends Espo
 {
     private $utils;
 
     private $ldapClient;
 
-    protected $injections = [];
+    protected $config;
+    protected $entityManager;
+    protected $container;
+
+    public function __construct(Config $config, EntityManager $entityManager, Container $container)
+    {
+        $this->config = $config;
+        $this->entityManager = $entityManager;
+        $this->container = $container;
+
+        $this->utils = new LDAP\Utils($config);
+    }
 
     /**
      * User field name  => option name (LDAP attribute)
@@ -77,23 +90,6 @@ class LDAP extends Espo
         'portalRolesIds' => 'portalUserRolesIds',
     );
 
-    public function __construct(Config $config, EntityManager $entityManager)
-    {
-        parent::__construct($config, $entityManager);
-
-        $this->utils = new LDAP\Utils($config);
-    }
-
-    public function inject($name, $object)
-    {
-        $this->injections[$name] = $object;
-    }
-
-    protected function getInjection($name)
-    {
-        return $this->injections[$name];
-    }
-
     protected function getUtils()
     {
         return $this->utils;
@@ -101,7 +97,7 @@ class LDAP extends Espo
 
     protected function getContainer()
     {
-        return $this->getInjection('container');
+        return $this->container;
     }
 
     protected function useSystemUser()
@@ -111,8 +107,7 @@ class LDAP extends Espo
             throw new Error("System user is not found.");
         }
 
-        $this->getContainer()->setUser($systemUser);
-        $this->getEntityManager()->setUser($systemUser);
+        $this->getContainer()->set('user', $systemUser);
     }
 
     protected function getLdapClient()
@@ -130,7 +125,7 @@ class LDAP extends Espo
         return $this->ldapClient;
     }
 
-    public function login(string $username, $password, ?AuthToken $authToken = null, array $params = [], $request = null)
+    public function login(string $username, ?string $password, ?AuthToken $authToken = null, array $params = [], $request = null)
     {
         $isPortal = !empty($params['isPortal']);
 
@@ -231,7 +226,10 @@ class LDAP extends Espo
 
         $tokenUsername = $user->get('userName');
         if (strtolower($username) != strtolower($tokenUsername)) {
-            $GLOBALS['log']->alert('Unauthorized access attempt for user ['.$username.'] from IP ['.$_SERVER['REMOTE_ADDR'].']');
+            $ip = $_SERVER['REMOTE_ADDR'] ?? '';
+            $GLOBALS['log']->alert(
+                'Unauthorized access attempt for user ['.$username.'] from IP ['.$ip.']'
+            );
             return null;
         }
 

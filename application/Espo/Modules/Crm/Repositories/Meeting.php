@@ -32,8 +32,13 @@ namespace Espo\Modules\Crm\Repositories;
 use Espo\ORM\Entity;
 use Espo\Core\Utils\Util;
 
-class Meeting extends \Espo\Core\Repositories\Event
+use Espo\Core\Di;
+
+class Meeting extends \Espo\Core\Repositories\Event implements Di\ConfigAware, Di\UserAware
 {
+    use Di\ConfigSetter;
+    use Di\UserSetter;
+
     protected function beforeSave(Entity $entity, array $options = [])
     {
         if (!$entity->isNew() && $entity->isAttributeChanged('parentId')) {
@@ -97,13 +102,14 @@ class Meeting extends \Espo\Core\Repositories\Event
 
         parent::beforeSave($entity, $options);
 
-
-        if (!$this->getConfig()->get('eventAssignedUserIsAttendeeDisabled')) {
+        if (!$this->config->get('eventAssignedUserIsAttendeeDisabled')) {
             if ($entity->hasLinkMultipleField('assignedUsers')) {
                 $assignedUserIdList = $entity->getLinkMultipleIdList('assignedUsers');
                 foreach ($assignedUserIdList as $assignedUserId) {
                     $entity->addLinkMultipleId('users', $assignedUserId);
-                    $entity->setLinkMultipleName('users', $assignedUserId, $entity->getLinkMultipleName('assignedUsers', $assignedUserId));
+                    $entity->setLinkMultipleName('users', $assignedUserId,
+                        $entity->getLinkMultipleName('assignedUsers', $assignedUserId)
+                    );
                 }
             } else {
                 $assignedUserId = $entity->get('assignedUserId');
@@ -115,7 +121,7 @@ class Meeting extends \Espo\Core\Repositories\Event
         }
 
         if ($entity->isNew()) {
-            $currentUserId = $this->getEntityManager()->getUser()->id;
+            $currentUserId = $this->user->id;
             if (
                 $entity->hasLinkMultipleId('users', $currentUserId)
                 &&
