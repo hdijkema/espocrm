@@ -27,24 +27,39 @@
  * these Appropriate Legal Notices must retain the display of the "EspoCRM" word.
  ************************************************************************/
 
-namespace Espo\Core\Formula;
+namespace Espo\Core\Formula\Functions\GlobalGroup;
 
-use \Espo\ORM\Entity;
+use Espo\Core\Exceptions\Error;
 
-class Formula
+$global_group_global_vars = [ ];
+
+class Globals extends \Espo\Core\Formula\Functions\Base
 {
-    private $functionFactory;
-
-    public function __construct(FunctionFactory $functionFactory)
+    public function process(\StdClass $item)
     {
-        $this->functionFactory = $functionFactory;
     }
 
-    public function process(\StdClass $item, $entity = null, $variables = null)
+    protected function doSet($a, $b) 
     {
-        if (is_null($variables)) {
-            $variables = (object)[];
-        }
-        return $this->functionFactory->create($item, $entity, $variables)->process($item);
+       global $global_group_global_vars;
+       $global_group_global_vars[$a] = $b;
+    }
+
+    protected function doGet($a) 
+    {
+       global $global_group_global_vars;
+       return $global_group_global_vars[$a];
+    }
+
+    protected function doesExist($a) 
+    {
+       global $global_group_global_vars;
+       return isset($global_group_global_vars[$a]);
+    }
+
+    protected function doUnset($a)
+    {
+       global $global_group_global_vars;
+       unset($global_group_global_vars[$a]);
     }
 }

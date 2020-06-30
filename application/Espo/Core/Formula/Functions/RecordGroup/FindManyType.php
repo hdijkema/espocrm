@@ -75,7 +75,11 @@ class FindManyType extends \Espo\Core\Formula\Functions\Base
             while ($i < count($item->value) - 1) {
                 $key = $this->evaluate($item->value[$i]);
                 $value = $this->evaluate($item->value[$i + 1]);
-                $whereClause[] = [$key => $value];
+                if ($key == 'limit by') {
+                    $selectParams['limit'] = $value + 0;
+                } else {
+                    $whereClause[] = [$key => $value];
+                }
                 $i = $i + 2;
             }
             $selectParams['whereClause'] = $whereClause;

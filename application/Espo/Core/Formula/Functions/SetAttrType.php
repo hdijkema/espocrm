@@ -27,24 +27,35 @@
  * these Appropriate Legal Notices must retain the display of the "EspoCRM" word.
  ************************************************************************/
 
-namespace Espo\Core\Formula;
+namespace Espo\Core\Formula\Functions;
 
-use \Espo\ORM\Entity;
+use Espo\Core\Exceptions\Error;
 
-class Formula
+class SetAttrType extends \Espo\Core\Formula\Functions\SetAttributeType
 {
-    private $functionFactory;
-
-    public function __construct(FunctionFactory $functionFactory)
+    public function process(\StdClass $item)
     {
-        $this->functionFactory = $functionFactory;
-    }
-
-    public function process(\StdClass $item, $entity = null, $variables = null)
-    {
-        if (is_null($variables)) {
-            $variables = (object)[];
+        if (!property_exists($item, 'value')) {
+            throw new Error();
         }
-        return $this->functionFactory->create($item, $entity, $variables)->process($item);
+
+        if (!is_array($item->value)) {
+            throw new Error();
+        }
+
+        if (count($item->value) < 3) {
+            throw new Error();
+        }
+
+        $entity = $this->evaluate($item->value[0]);
+        $attr = $this->evaluate($item->value[1]);
+  	$value = $this->evaluate($item->value[2]);
+
+
+	if (!$entity) throw new Error("Formula setAttr: Empty entity.");
+        if (!$attr) throw new Error("Formula setAttr: Empty attribute.");
+        #if (!$value) throw new Error("Formula setAttr: Empty value.");
+
+	return $entity->set($attr, $value);
     }
 }

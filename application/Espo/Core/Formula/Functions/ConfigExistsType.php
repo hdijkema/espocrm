@@ -27,24 +27,49 @@
  * these Appropriate Legal Notices must retain the display of the "EspoCRM" word.
  ************************************************************************/
 
-namespace Espo\Core\Formula;
+namespace Espo\Core\Formula\Functions;
 
-use \Espo\ORM\Entity;
+use \Espo\Core\Exceptions\Error;
 
-class Formula
+class ConfigExistsType extends \Espo\Core\Formula\Functions\Base
 {
-    private $functionFactory;
-
-    public function __construct(FunctionFactory $functionFactory)
+    protected function init()
     {
-        $this->functionFactory = $functionFactory;
+        $this->addDependency('entityManager');
+        $this->addDependency('selectManagerFactory');
     }
 
-    public function process(\StdClass $item, $entity = null, $variables = null)
+    public function process(\StdClass $item)
     {
-        if (is_null($variables)) {
-            $variables = (object)[];
+        if (!property_exists($item, 'value')) {
+            return '';
         }
-        return $this->functionFactory->create($item, $entity, $variables)->process($item);
+
+        if (!is_array($item->value)) {
+            throw new Error('Value for \'configExists\' item is not array.');
+        }
+
+        if (count($item->value) < 1) {
+            throw new Error('\'configExists\' needs a configuration item.'); 
+        }
+
+        $entityType = 'Config';
+        $selectManager = $this->getInjection('selectManagerFactory')->create($entityType);
+        $selectParams = $selectManager->getEmptySelectParams();
+
+        $whereClause = [];
+        $key = 'name=';
+        $value = $this->evaluate($item->value[0]);
+        $whereClause[] = [$key => $value];
+
+        $selectParams['whereClause'] = $whereClause;
+
+
+        $e = $this->getInjection('entityManager')->getRepository($entityType)->select(['id', 'type', 'valueInt', 'valueString', 'valueReal', 'valueDocId', 'valueScript' ])->findOne($selectParams);
+        if ($e) { 
+            return true;
+        } else {
+            return false;
+        }
     }
 }

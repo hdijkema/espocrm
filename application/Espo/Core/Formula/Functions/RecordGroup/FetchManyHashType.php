@@ -31,7 +31,7 @@ namespace Espo\Core\Formula\Functions\RecordGroup;
 
 use Espo\Core\Exceptions\Error;
 
-class FetchManyType extends \Espo\Core\Formula\Functions\Base
+class FetchManyHashType extends \Espo\Core\Formula\Functions\Base
 {
     protected function init()
     {
@@ -76,9 +76,9 @@ class FetchManyType extends \Espo\Core\Formula\Functions\Base
             while ($i < count($item->value) - 1) {
                 $key = $this->evaluate($item->value[$i]);
                 $value = $this->evaluate($item->value[$i + 1]);
-		if ($key == 'limit by') {
+                if ($key == 'limit by') {
                     $selectParams['limit'] = $value + 0;
-		} else {
+                } else {
                     $whereClause[] = [$key => $value];
                 }
                 $i = $i + 2;
@@ -98,7 +98,7 @@ class FetchManyType extends \Espo\Core\Formula\Functions\Base
             $row = array();
             foreach($items as $name) {
 		$val = $elem->get($name);
-                array_push($row, $val);
+		$row[$name] = $val;
             }
             array_push($result, $row);
         }

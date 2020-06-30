@@ -27,24 +27,20 @@
  * these Appropriate Legal Notices must retain the display of the "EspoCRM" word.
  ************************************************************************/
 
-namespace Espo\Core\Formula;
+namespace Espo\Core\Formula\Functions\ExtGroup;
 
-use \Espo\ORM\Entity;
+use Espo\Core\Exceptions\Error;
 
-class Formula
+class CommitType extends \Espo\Core\Formula\Functions\Base
 {
-    private $functionFactory;
-
-    public function __construct(FunctionFactory $functionFactory)
+    protected function init()
     {
-        $this->functionFactory = $functionFactory;
+        $this->addDependency('entityManager');
     }
 
-    public function process(\StdClass $item, $entity = null, $variables = null)
+    public function process(\StdClass $item)
     {
-        if (is_null($variables)) {
-            $variables = (object)[];
-        }
-        return $this->functionFactory->create($item, $entity, $variables)->process($item);
+        $em = $this->getInjection('entityManager');
+	return $em->getPDO()->commit();
     }
 }

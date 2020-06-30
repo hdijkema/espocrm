@@ -93,10 +93,14 @@ class Formula extends \Espo\Core\Hooks\Base
         if (!empty($options['skipFormula'])) return;
 
 	$hook = $options['hook'];
+	if ($options['vars']) {
+           $variables = $options['vars'];
+        } else {
+           $variables = (object)[];
+        }
 
 	if ($hook == 'beforeSave') {
             $scriptList = $this->getMetadata()->get(['formula', $entity->getEntityType(), 'beforeSaveScriptList'], []);
-            $variables = (object)[];
             foreach ($scriptList as $script) {
                 try {
                     $this->getFormulaManager()->run($script, $entity, $variables);
@@ -143,21 +147,24 @@ class Formula extends \Espo\Core\Hooks\Base
 	$this->executeFormula($entity, $options);
     }
 
-    public function afterRelate(Entity $entity, array $options = array())
+    public function afterRelate(Entity $entity, array $options = array(), array $hookdata = array())
     {
 	$options['hook'] = 'afterRelate';
+	$options['vars'] = (object) $hookdata;
 	$this->executeFormula($entity, $options);
     }
 
-    public function afterUnrelate(Entity $entity, array $options = array())
+    public function afterUnrelate(Entity $entity, array $options = array(), array $hookdata = array())
     {
 	$options['hook'] = 'afterUnrelate';
+	$options['vars'] = (object) $hookdata;
 	$this->executeFormula($entity, $options);
     }
 
-    public function afterMassRelate(Entity $entity, array $options = array())
+    public function afterMassRelate(Entity $entity, array $options = array(), array $hookdata = array())
     {
 	$options['hook'] = 'afterMassRelate';
+	$options['vars'] = (object) $hookdata;
 	$this->executeFormula($entity, $options);
     }
 }

@@ -27,24 +27,30 @@
  * these Appropriate Legal Notices must retain the display of the "EspoCRM" word.
  ************************************************************************/
 
-namespace Espo\Core\Formula;
+namespace Espo\Core\Formula\Functions\ArrayGroup;
 
-use \Espo\ORM\Entity;
+use Espo\Core\Exceptions\Error;
 
-class Formula
+class SetType extends \Espo\Core\Formula\Functions\Base
 {
-    private $functionFactory;
-
-    public function __construct(FunctionFactory $functionFactory)
+    public function process(\StdClass $item)
     {
-        $this->functionFactory = $functionFactory;
-    }
+        if (count($item->value) < 3) throw new Error("Formula: array\\set: Not enough arguments.");
 
-    public function process(\StdClass $item, $entity = null, $variables = null)
-    {
-        if (is_null($variables)) {
-            $variables = (object)[];
+	$array = $this->evaluate($item->value[0]);
+        $index = $this->evaluate($item->value[1]);
+        $value = $this->evaluate($item->value[2]);
+
+        if (!is_array($array)) throw new Error("Formula: array\\set: First argument must be array.");
+        if (!is_int($index)) throw new Error("Formula: array\\set: Second argument must be integer.");
+
+        if (!array_key_exists($index, $array)) {
+            $GLOBALS['log']->notice("Formula: array\\set: Index doesn't exist.");
+            return null;
         }
-        return $this->functionFactory->create($item, $entity, $variables)->process($item);
+
+        $array[$index] = $value;
+
+        return $array;
     }
 }

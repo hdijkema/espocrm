@@ -27,24 +27,24 @@
  * these Appropriate Legal Notices must retain the display of the "EspoCRM" word.
  ************************************************************************/
 
-namespace Espo\Core\Formula;
+namespace Espo\Core\Formula\Functions\HashGroup;
 
-use \Espo\ORM\Entity;
+use Espo\Core\Exceptions\Error;
 
-class Formula
+class IsSetType extends \Espo\Core\Formula\Functions\Base
 {
-    private $functionFactory;
-
-    public function __construct(FunctionFactory $functionFactory)
+    public function process(\StdClass $item)
     {
-        $this->functionFactory = $functionFactory;
-    }
+        $args = $this->fetchRawArguments($item);
 
-    public function process(\StdClass $item, $entity = null, $variables = null)
-    {
-        if (is_null($variables)) {
-            $variables = (object)[];
+        if (count($args) < 2) {
+            throw new Error("Function \'hash\\isset\' should receive 2 arguments.");
         }
-        return $this->functionFactory->create($item, $entity, $variables)->process($item);
+
+	$hash = $this->evaluate($args[0]);
+	$var = $this->evaluate($args[1]);
+
+	return isset($hash[$var]);
     }
 }
+

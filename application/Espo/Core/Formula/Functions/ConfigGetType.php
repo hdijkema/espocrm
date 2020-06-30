@@ -64,7 +64,8 @@ class ConfigGetType extends \Espo\Core\Formula\Functions\Base
 
         $selectParams['whereClause'] = $whereClause;
 
-        $e = $this->getInjection('entityManager')->getRepository($entityType)->select(['id', 'type', 'valueInt', 'valueString', 'valueReal', 'valueDocId' ])->findOne($selectParams);
+
+        $e = $this->getInjection('entityManager')->getRepository($entityType)->select(['id', 'type', 'valueInt', 'valueString', 'valueReal', 'valueDocId', 'valueScript' ])->findOne($selectParams);
         if ($e) { 
             $type = $e->get('type');
             if ($type == 'int') {
@@ -75,6 +76,8 @@ class ConfigGetType extends \Espo\Core\Formula\Functions\Base
                return $e->get('valueReal');
             } else if ($type == 'doc') {
                return $e->get('valueDocId');
+            } else if ($type == 'script') {
+               return $e->get('valueScript'); 
             } else {
               throw new Error('\'configGet\', type '.$type.' is not supported');
             }
